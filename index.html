@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sithong Image Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            /* Beautiful and colorful background gradient for the main page */
+            background: linear-gradient(135deg, #a7e6ff, #d4a7ff); /* Soft blue to purple gradient */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh; /* Ensure it takes full viewport height */
+            padding: 1rem;
+        }
+        .container {
+            max-width: 800px;
+            background-color: #ffffff; /* Keep white for content clarity */
+            padding: 2.5rem; /* Slightly more padding */
+            border-radius: 1.5rem; /* More rounded corners */
+            /* Stronger and more colorful shadow for a beautiful design */
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.5); /* Subtle white border for depth */
+            backdrop-filter: blur(5px); /* Optional: add a subtle blur effect if desired */
+        }
+        /* Styling for the H1 title with rainbow cycling color */
+        h1 {
+            font-size: 2.5rem; /* Adjust font size for better effect */
+            font-weight: 800; /* Make it extra bold */
+            text-align: center;
+            margin-bottom: 1.5rem;
+            /* Create a rainbow gradient background */
+            background: linear-gradient(to right,
+                #ef4444, /* red */
+                #f97316, /* orange */
+                #eab308, /* yellow */
+                #22c55e, /* green */
+                #3b82f6, /* blue */
+                #8b5cf6, /* indigo */
+                #ec4899  /* pink/violet */
+            );
+            background-size: 200% auto; /* Make the gradient wider than the text */
+            /* Apply background to text and make text transparent */
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-fill-color: transparent;
+            /* Animate the background position for a cycling effect */
+            animation: rainbow-text 10s linear infinite;
+        }
+
+        /* Keyframes for the rainbow text animation */
+        @keyframes rainbow-text {
+            0% { background-position: 0% center; }
+            100% { background-position: -200% center; } /* Move the gradient across */
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6; /* Blue */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .button-gradient {
+            background-image: linear-gradient(to right, #60a5fa, #3b82f6); /* Blue gradient */
+            transition: all 0.3s ease-in-out; /* Smooth transition for hover effects */
+        }
+        .button-gradient:hover {
+            background-image: linear-gradient(to right, #3b82f6, #2563eb); /* Darker blue gradient on hover */
+            transform: translateY(-2px); /* Slight lift effect on hover */
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+        }
+        textarea {
+            resize: vertical; /* Allow vertical resizing of the textarea */
+            min-height: 120px; /* Minimum height for the textarea */
+            transition: all 0.3s ease-in-out; /* Smooth transition for focus */
+        }
+        textarea:focus {
+            border-color: #3b82f6; /* Highlight border on focus */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Ring on focus */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white p-8 rounded-lg shadow-lg text-center">
+        <h1 class="text-3xl mb-6">Generate Any Image You Want with Sithong SG</h1>
+        <p class="text-gray-600 mb-6">Enter a detailed description of the image you'd like to create below:</p>
+
+        <!-- Textarea for user input -->
+        <textarea id="imagePrompt" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-6 text-gray-700" placeholder="e.g., An astronaut riding a unicorn on the moon with Earth in the background, in a whimsical cartoon style."></textarea>
+
+        <button id="generateImageBtn" class="button-gradient text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition duration-300 flex items-center justify-center mx-auto">
+            <span id="buttonText">Generate Image</span>
+            <div id="loadingSpinner" class="loading-spinner ml-3 hidden"></div>
+        </button>
+
+        <div id="imageDisplay" class="mt-8">
+            <img id="generatedImage" class="hidden w-full h-auto rounded-lg shadow-md" alt="Generated Image">
+            <p id="imageStatus" class="text-gray-500 mt-4"></p>
+        </div>
+    </div>
+
+    <script type="module">
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get references to DOM elements
+            const imagePromptInput = document.getElementById('imagePrompt');
+            const generateImageBtn = document.getElementById('generateImageBtn');
+            const buttonText = document.getElementById('buttonText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const generatedImage = document.getElementById('generatedImage');
+            const imageStatus = document.getElementById('imageStatus');
+
+            // Add event listener for the generate button
+            generateImageBtn.addEventListener('click', async () => {
+                // Get the prompt text from the textarea
+                const prompt = imagePromptInput.value.trim();
+
+                // Validate if prompt is not empty
+                if (!prompt) {
+                    imageStatus.textContent = 'Please enter a description for the image.';
+                    imageStatus.classList.remove('text-gray-500');
+                    imageStatus.classList.add('text-red-500');
+                    return; // Stop execution if prompt is empty
+                }
+
+                // Reset status text color
+                imageStatus.classList.remove('text-red-500');
+                imageStatus.classList.add('text-gray-500');
+
+                // Show loading state
+                buttonText.textContent = 'Generating...';
+                loadingSpinner.classList.remove('hidden');
+                generateImageBtn.disabled = true; // Disable button to prevent multiple clicks
+                generatedImage.classList.add('hidden'); // Hide previous image
+                imageStatus.textContent = 'Please wait, generating your image...';
+
+                try {
+                    // Prepare the payload for the API call
+                    const payload = { 
+                        instances: { 
+                            prompt: prompt 
+                        }, 
+                        parameters: { 
+                            "sampleCount": 1 // Requesting one image
+                        } 
+                    };
+                    
+                    // API key is automatically provided by Canvas at runtime
+                    const apiKey = "AIzaSyCW2TIdIRJsma71p9g7xvH7XNgk8gITCQk"; 
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+                    // Make the API call
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Parse the JSON response
+                    const result = await response.json();
+
+                    // Check if image data is present in the response
+                    if (result.predictions && result.predictions.length > 0 && result.predictions[0].bytesBase64Encoded) {
+                        const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                        generatedImage.src = imageUrl; // Set the image source
+                        generatedImage.classList.remove('hidden'); // Show the image
+                        imageStatus.textContent = 'Image generated successfully!';
+                    } else {
+                        // Handle cases where the response structure is unexpected or content is missing
+                        imageStatus.textContent = 'Failed to generate image. The model might not have produced an output for this prompt. Please try a different description.';
+                        console.error('Image generation response missing expected data:', result);
+                    }
+                } catch (error) {
+                    // Handle any network or API errors
+                    imageStatus.textContent = 'An error occurred during image generation. Please check your network connection and try again.';
+                    console.error('Error generating image:', error);
+                } finally {
+                    // Reset button state regardless of success or failure
+                    buttonText.textContent = 'Generate Image';
+                    loadingSpinner.classList.add('hidden');
+                    generateImageBtn.disabled = false; // Re-enable the button
+                }
+            });
+        });
+    </script>
+</body>
+</html>
